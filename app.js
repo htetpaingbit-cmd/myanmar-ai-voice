@@ -1,8 +1,7 @@
 // --- IndexedDB Configuration ---
-const DB_NAME = 'MyanmarTTS_Database';
-const DB_VERSION = 2;
-const STORE_HISTORY = 'audio_history';
-const STORE_PROFILE = 'voice_profile';
+const DB_NAME = 'MyanmarAI_Studio_DB';
+const DB_VERSION = 1;
+const STORE_HISTORY = 'generation_history';
 
 function openDB() {
     return new Promise((resolve, reject) => {
@@ -12,16 +11,12 @@ function openDB() {
             if (!db.objectStoreNames.contains(STORE_HISTORY)) {
                 db.createObjectStore(STORE_HISTORY, { keyPath: 'id' });
             }
-            if (!db.objectStoreNames.contains(STORE_PROFILE)) {
-                db.createObjectStore(STORE_PROFILE, { keyPath: 'id' });
-            }
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
     });
 }
 
-// History DB
 async function saveToHistory(record) {
     const db = await openDB();
     const tx = db.transaction(STORE_HISTORY, 'readwrite');
@@ -34,7 +29,7 @@ async function getAllHistory() {
     return new Promise((resolve) => {
         const tx = db.transaction(STORE_HISTORY, 'readonly');
         const req = tx.objectStore(STORE_HISTORY).getAll();
-        req.onsuccess = () => resolve(req.result.sort((a, b) => b.id - a.id));
+        req.onsuccess = () => resolve((req.result || []).sort((a, b) => b.id - a.id));
     });
 }
 
@@ -52,30 +47,6 @@ async function clearAllHistory() {
     return tx.complete;
 }
 
-// Voice Profile DB
-async function saveUserVoiceProfile(blob) {
-    const db = await openDB();
-    const tx = db.transaction(STORE_PROFILE, 'readwrite');
-    tx.objectStore(STORE_PROFILE).put({ id: 'my_voice', audioBlob: blob, date: new Date().toLocaleDateString() });
-    return tx.complete;
-}
-
-async function getUserVoiceProfile() {
-    const db = await openDB();
-    return new Promise((resolve) => {
-        const tx = db.transaction(STORE_PROFILE, 'readonly');
-        const req = tx.objectStore(STORE_PROFILE).get('my_voice');
-        req.onsuccess = () => resolve(req.result);
-    });
-}
-
-async function deleteUserVoiceProfile() {
-    const db = await openDB();
-    const tx = db.transaction(STORE_PROFILE, 'readwrite');
-    tx.objectStore(STORE_PROFILE).delete('my_voice');
-    return tx.complete;
-}
-
 // DOM Elements
 const textInput = document.getElementById('textInput');
 const charCount = document.getElementById('charCount');
@@ -89,18 +60,13 @@ const audioPlayer = document.getElementById('audioPlayer');
 const downloadMp3Btn = document.getElementById('downloadMp3Btn');
 const downloadWavBtn = document.getElementById('downloadWavBtn');
 const speedButtons = document.querySelectorAll('.speed-btn');
-const voiceCards = document.querySelectorAll('.voice-card');
+
+const genderCards = document.querySelectorAll('.gender-card');
+const personaCards = document.querySelectorAll('.persona-card');
 
 const historyList = document.getElementById('historyList');
 const emptyHistoryText = document.getElementById('emptyHistoryText');
 const clearAllHistoryBtn = document.getElementById('clearAllHistoryBtn');
-
-const recordBtn = document.getElementById('recordBtn');
-const recordIcon = document.getElementById('recordIcon');
-const recordText = document.getElementById('recordText');
-const userAudioPreview = document.getElementById('userAudioPreview');
-const voiceProfileStatus = document.getElementById('voiceProfileStatus');
-const deleteVoiceProfileBtn = document.getElementById('deleteVoiceProfileBtn');
 
 let currentAudioBlob = null;
 let currentAudioBuffer = null;
@@ -130,13 +96,35 @@ clearBtn.addEventListener('click', () => {
     charCount.innerText = '0 characters';
 });
 
-// UI Voice Card Selector
-voiceCards.forEach(card => {
+// Gender Selection Radio styling
+genderCards.forEach(card => {
     card.addEventListener('click', () => {
-        voiceCards.forEach(c => {
-            c.className = 'flex items-center gap-3 p-3.5 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer hover:bg-blue-50 transition voice-card';
+        genderCards.forEach(c => {
+            c.className = 'gender-card flex items-center justify-center gap-2 p-3 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer transition';
+            const span = c.querySelector('span');
+            if (span) span.className = 'font-bold text-sm text-slate-700';
         });
-        card.className = 'flex items-center gap-3 p-3.5 border-2 border-blue-600 bg-blue-50/60 rounded-xl cursor-pointer hover:bg-blue-50 transition voice-card';
+        card.className = 'gender-card flex items-center justify-center gap-2 p-3 border-2 border-blue-600 bg-blue-50/70 rounded-xl cursor-pointer transition';
+        const activeSpan = card.querySelector('span');
+        if (activeSpan) activeSpan.className = 'font-bold text-sm text-blue-900';
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+    });
+});
+
+// Persona Card Selection styling
+personaCards.forEach(card => {
+    card.addEventListener('click', () => {
+        personaCards.forEach(c => {
+            c.className = 'persona-card p-3 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer hover:bg-blue-50 transition block';
+            const titleDiv = c.querySelector('div:first-of-type');
+            if (titleDiv) titleDiv.className = 'flex items-center gap-2 font-bold text-xs text-slate-800';
+        });
+        card.className = 'persona-card p-3 border-2 border-blue-600 bg-blue-50/60 rounded-xl cursor-pointer transition block';
+        const activeTitle = card.querySelector('div:first-of-type');
+        if (activeTitle) activeTitle.className = 'flex items-center gap-2 font-bold text-xs text-blue-950';
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
     });
 });
 
@@ -150,43 +138,39 @@ speedButtons.forEach(btn => {
     });
 });
 
-// --- Main Audio Generate Action ---
+// TTS Generation Action
 generateBtn.addEventListener('click', async () => {
     const text = textInput.value.trim();
-    const selectedVoiceProfile = document.querySelector('input[name="voiceRadio"]:checked').value;
-    
-    const voiceNames = {
-        explainer_female: 'May Thu (Explainer)',
-        explainer_male: 'Min Khant (Tech Guide)',
-        nilar_standard: 'Nilar (Storyteller)',
-        thiha_standard: 'Thiha (Professional)'
-    };
-    const voiceName = voiceNames[selectedVoiceProfile] || 'May Thu';
+    const gender = document.querySelector('input[name="genderRadio"]:checked').value;
+    const persona = document.querySelector('input[name="personaRadio"]:checked').value;
 
     if (!text) {
-        alert('Please enter or paste some text first!');
+        alert('Please enter or paste some Burmese text first!');
         textInput.focus();
         return;
     }
 
     generateBtn.disabled = true;
     generateSpinner.classList.remove('hidden');
-    generateBtnText.innerText = 'Generating AI Voice... Please wait';
+    generateBtnText.innerText = 'Generating Voice... Please wait';
     audioResultCard.classList.add('hidden');
 
     try {
         const res = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: text, voiceProfile: selectedVoiceProfile })
+            body: JSON.stringify({ text, gender, persona })
         });
 
-        if (!res.ok) throw new Error('Audio generation failed on server');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `Server responded with status ${res.status}`);
+        }
 
         currentAudioBlob = await res.blob();
         const audioUrl = URL.createObjectURL(currentAudioBlob);
 
-        // Web Audio Decode for WAV converter
+        // Web Audio API decode for instant WAV export
         const arrayBuf = await currentAudioBlob.arrayBuffer();
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         currentAudioBuffer = await audioCtx.decodeAudioData(arrayBuf);
@@ -196,12 +180,14 @@ generateBtn.addEventListener('click', async () => {
         audioResultCard.classList.remove('hidden');
         audioPlayer.play();
 
-        // History
+        // Save into IndexedDB history
+        const personaLabel = persona.charAt(0).toUpperCase() + persona.slice(1);
         const historyItem = {
             id: Date.now(),
-            text: text.slice(0, 70) + (text.length > 70 ? '...' : ''),
+            text: text.slice(0, 75) + (text.length > 75 ? '...' : ''),
             fullText: text,
-            voiceName: voiceName,
+            gender: gender,
+            persona: personaLabel,
             date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             audioBlob: currentAudioBlob
         };
@@ -209,7 +195,7 @@ generateBtn.addEventListener('click', async () => {
         renderHistory();
 
     } catch (err) {
-        alert('Error: ' + err.message);
+        alert('Generation Error: ' + err.message);
     } finally {
         generateBtn.disabled = false;
         generateSpinner.classList.add('hidden');
@@ -217,7 +203,7 @@ generateBtn.addEventListener('click', async () => {
     }
 });
 
-// AudioBuffer to WAV Blob
+// WAV Blob Converter
 function audioBufferToWavBlob(buffer) {
     const numOfChan = 1;
     const length = buffer.length * 2 + 44;
@@ -233,7 +219,7 @@ function audioBufferToWavBlob(buffer) {
     setUint32(0x45564157); // "WAVE"
     setUint32(0x20746d66); // "fmt "
     setUint32(16);
-    setUint16(1); // PCM
+    setUint16(1);          // PCM
     setUint16(numOfChan);
     setUint32(sampleRate);
     setUint32(sampleRate * 2);
@@ -259,6 +245,7 @@ function triggerDownload(blob, filename) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 downloadMp3Btn.addEventListener('click', () => {
@@ -274,12 +261,12 @@ downloadWavBtn.addEventListener('click', () => {
     }
 });
 
-// History List
+// Render IndexedDB History List
 async function renderHistory() {
     const list = await getAllHistory();
     historyList.innerHTML = '';
 
-    if (list.length === 0) {
+    if (!list || list.length === 0) {
         emptyHistoryText.classList.remove('hidden');
         historyList.appendChild(emptyHistoryText);
         return;
@@ -293,7 +280,7 @@ async function renderHistory() {
         card.innerHTML = `
             <div class="space-y-1 flex-1">
                 <div class="flex items-center gap-2">
-                    <span class="bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded text-[10px]">${item.voiceName || 'May Thu'}</span>
+                    <span class="bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded text-[10px] uppercase">${item.gender || 'Female'} - ${item.persona || 'Presenter'}</span>
                     <span class="text-slate-400 text-[10px]">${item.date}</span>
                 </div>
                 <p class="text-slate-700 font-medium text-xs line-clamp-1">${item.text}</p>
@@ -331,69 +318,12 @@ window.removeItem = async (id) => {
 };
 
 clearAllHistoryBtn.addEventListener('click', async () => {
-    if (confirm('Are you sure you want to clear all history?')) {
+    if (confirm('Are you sure you want to delete all generation history?')) {
         await clearAllHistory();
         renderHistory();
     }
 });
 
-// Voice Profile Logic
-let mediaRecorder;
-let recordedChunks = [];
-let isRecording = false;
-
-async function loadSavedVoiceProfile() {
-    const profile = await getUserVoiceProfile();
-    if (profile && profile.audioBlob) {
-        userAudioPreview.src = URL.createObjectURL(profile.audioBlob);
-        userAudioPreview.classList.remove('hidden');
-        deleteVoiceProfileBtn.classList.remove('hidden');
-        voiceProfileStatus.innerText = '✅ Profile Saved';
-        voiceProfileStatus.className = 'text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-bold border border-green-200';
-    } else {
-        userAudioPreview.classList.add('hidden');
-        deleteVoiceProfileBtn.classList.add('hidden');
-        voiceProfileStatus.innerText = 'No Voice Profile';
-        voiceProfileStatus.className = 'text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium';
-    }
-}
-
-recordBtn.addEventListener('click', async () => {
-    if (!isRecording) {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            recordedChunks = [];
-            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
-            mediaRecorder.onstop = async () => {
-                const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-                await saveUserVoiceProfile(blob);
-                loadSavedVoiceProfile();
-                stream.getTracks().forEach(t => t.stop());
-            };
-            mediaRecorder.start();
-            isRecording = true;
-            recordText.innerText = 'Stop & Save';
-            recordIcon.classList.add('recording-pulse');
-        } catch (err) {
-            alert('Microphone access denied: ' + err.message);
-        }
-    } else {
-        mediaRecorder.stop();
-        isRecording = false;
-        recordText.innerText = 'Record Again';
-        recordIcon.classList.remove('recording-pulse');
-    }
-});
-
-deleteVoiceProfileBtn.addEventListener('click', async () => {
-    if (confirm('Are you sure you want to delete your voice profile?')) {
-        await deleteUserVoiceProfile();
-        loadSavedVoiceProfile();
-    }
-});
-
 window.addEventListener('DOMContentLoaded', () => {
     renderHistory();
-    loadSavedVoiceProfile();
 });
