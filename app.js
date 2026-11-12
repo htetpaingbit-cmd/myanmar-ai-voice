@@ -1,51 +1,71 @@
-// --- IndexedDB Configuration ---
-const DB_NAME = 'MyanmarAI_Studio_DB';
+// --- Safe IndexedDB Wrapper (Never crashes even in Private Browsing / In-App Browsers) ---
+const DB_NAME = 'MyanmarAI_Studio_DB_v3';
 const DB_VERSION = 1;
 const STORE_HISTORY = 'generation_history';
 
 function openDB() {
-    return new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains(STORE_HISTORY)) {
-                db.createObjectStore(STORE_HISTORY, { keyPath: 'id' });
+    return new Promise((resolve) => {
+        try {
+            if (!window.indexedDB) {
+                return resolve(null);
             }
-        };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+            const req = indexedDB.open(DB_NAME, DB_VERSION);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_HISTORY)) {
+                    db.createObjectStore(STORE_HISTORY, { keyPath: 'id' });
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => resolve(null);
+        } catch (e) {
+            resolve(null);
+        }
     });
 }
 
 async function saveToHistory(record) {
-    const db = await openDB();
-    const tx = db.transaction(STORE_HISTORY, 'readwrite');
-    tx.objectStore(STORE_HISTORY).put(record);
-    return tx.complete;
+    try {
+        const db = await openDB();
+        if (!db) return;
+        const tx = db.transaction(STORE_HISTORY, 'readwrite');
+        tx.objectStore(STORE_HISTORY).put(record);
+    } catch (e) {
+        console.warn("History save skipped:", e);
+    }
 }
 
 async function getAllHistory() {
-    const db = await openDB();
-    return new Promise((resolve) => {
-        const tx = db.transaction(STORE_HISTORY, 'readonly');
-        const req = tx.objectStore(STORE_HISTORY).getAll();
-        req.onsuccess = () => resolve((req.result || []).sort((a, b) => b.id - a.id));
-        req.onerror = () => resolve([]);
-    });
+    try {
+        const db = await openDB();
+        if (!db) return [];
+        return new Promise((resolve) => {
+            const tx = db.transaction(STORE_HISTORY, 'readonly');
+            const req = tx.objectStore(STORE_HISTORY).getAll();
+            req.onsuccess = () => resolve((req.result || []).sort((a, b) => b.id - a.id));
+            req.onerror = () => resolve([]);
+        });
+    } catch (e) {
+        return [];
+    }
 }
 
 async function deleteHistoryItem(id) {
-    const db = await openDB();
-    const tx = db.transaction(STORE_HISTORY, 'readwrite');
-    tx.objectStore(STORE_HISTORY).delete(id);
-    return tx.complete;
+    try {
+        const db = await openDB();
+        if (!db) return;
+        const tx = db.transaction(STORE_HISTORY, 'readwrite');
+        tx.objectStore(STORE_HISTORY).delete(id);
+    } catch (e) {}
 }
 
 async function clearAllHistory() {
-    const db = await openDB();
-    const tx = db.transaction(STORE_HISTORY, 'readwrite');
-    tx.objectStore(STORE_HISTORY).clear();
-    return tx.complete;
+    try {
+        const db = await openDB();
+        if (!db) return;
+        const tx = db.transaction(STORE_HISTORY, 'readwrite');
+        tx.objectStore(STORE_HISTORY).clear();
+    } catch (e) {}
 }
 
 // DOM Elements
@@ -62,9 +82,6 @@ const downloadMp3Btn = document.getElementById('downloadMp3Btn');
 const downloadWavBtn = document.getElementById('downloadWavBtn');
 const speedButtons = document.querySelectorAll('.speed-btn');
 
-const genderCards = document.querySelectorAll('.gender-card');
-const personaCards = document.querySelectorAll('.persona-card');
-
 const historyList = document.getElementById('historyList');
 const emptyHistoryText = document.getElementById('emptyHistoryText');
 const clearAllHistoryBtn = document.getElementById('clearAllHistoryBtn');
@@ -79,54 +96,28 @@ function formatSeconds(sec) {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-audioPlayer.addEventListener('timeupdate', () => {
-    timeTracker.innerText = `${formatSeconds(audioPlayer.currentTime)} / ${formatSeconds(audioPlayer.duration)}`;
-});
-
-audioPlayer.addEventListener('loadedmetadata', () => {
-    timeTracker.innerText = `00:00 / ${formatSeconds(audioPlayer.duration)}`;
-});
-
-textInput.addEventListener('input', () => {
-    charCount.innerText = `${textInput.value.length} characters`;
-});
-
-clearBtn.addEventListener('click', () => {
-    textInput.value = '';
-    charCount.innerText = '0 characters';
-});
-
-// Gender Selection Card styling
-genderCards.forEach(card => {
-    card.addEventListener('click', () => {
-        genderCards.forEach(c => {
-            c.className = 'gender-card flex items-center justify-center gap-2 p-3 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer transition';
-            const span = c.querySelector('span');
-            if (span) span.className = 'font-bold text-sm text-slate-700';
-        });
-        card.className = 'gender-card flex items-center justify-center gap-2 p-3 border-2 border-blue-600 bg-blue-50/70 rounded-xl cursor-pointer transition';
-        const activeSpan = card.querySelector('span');
-        if (activeSpan) activeSpan.className = 'font-bold text-sm text-blue-900';
-        const radio = card.querySelector('input[type="radio"]');
-        if (radio) radio.checked = true;
+if (audioPlayer) {
+    audioPlayer.addEventListener('timeupdate', () => {
+        timeTracker.innerText = `${formatSeconds(audioPlayer.currentTime)} / ${formatSeconds(audioPlayer.duration)}`;
     });
-});
 
-// Persona Card Selection styling
-personaCards.forEach(card => {
-    card.addEventListener('click', () => {
-        personaCards.forEach(c => {
-            c.className = 'persona-card p-3 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer hover:bg-blue-50 transition block';
-            const titleDiv = c.querySelector('div:first-of-type');
-            if (titleDiv) titleDiv.className = 'flex items-center gap-2 font-bold text-xs text-slate-800';
-        });
-        card.className = 'persona-card p-3 border-2 border-blue-600 bg-blue-50/60 rounded-xl cursor-pointer transition block';
-        const activeTitle = card.querySelector('div:first-of-type');
-        if (activeTitle) activeTitle.className = 'flex items-center gap-2 font-bold text-xs text-blue-950';
-        const radio = card.querySelector('input[type="radio"]');
-        if (radio) radio.checked = true;
+    audioPlayer.addEventListener('loadedmetadata', () => {
+        timeTracker.innerText = `00:00 / ${formatSeconds(audioPlayer.duration)}`;
     });
-});
+}
+
+if (textInput && charCount) {
+    textInput.addEventListener('input', () => {
+        charCount.innerText = `${textInput.value.length} characters`;
+    });
+}
+
+if (clearBtn && textInput) {
+    clearBtn.addEventListener('click', () => {
+        textInput.value = '';
+        charCount.innerText = '0 characters';
+    });
+}
 
 // Speed Controls
 speedButtons.forEach(btn => {
@@ -134,75 +125,107 @@ speedButtons.forEach(btn => {
         speedButtons.forEach(b => b.className = 'speed-btn px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-blue-50');
         btn.className = 'speed-btn px-2.5 py-1 text-xs bg-blue-600 text-white font-bold rounded';
         currentSpeed = parseFloat(btn.dataset.speed);
-        audioPlayer.playbackRate = currentSpeed;
+        if (audioPlayer) audioPlayer.playbackRate = currentSpeed;
     });
 });
 
-// TTS Generation Action (Safe across mobile and all browsers)
-generateBtn.addEventListener('click', async () => {
-    const text = textInput.value.trim();
-    const gender = document.querySelector('input[name="genderRadio"]:checked').value;
-    const persona = document.querySelector('input[name="personaRadio"]:checked').value;
+// Robust Generation Trigger (Works on all mobile and desktop devices)
+if (generateBtn) {
+    generateBtn.addEventListener('click', async () => {
+        const text = textInput.value.trim();
+        
+        const genderEl = document.querySelector('input[name="genderRadio"]:checked');
+        const personaEl = document.querySelector('input[name="personaRadio"]:checked');
 
-    if (!text) {
-        alert('Please enter or paste some Burmese text first!');
-        textInput.focus();
-        return;
-    }
+        const gender = genderEl ? genderEl.value : 'female';
+        const persona = personaEl ? personaEl.value : 'presenter';
 
-    generateBtn.disabled = true;
-    generateSpinner.classList.remove('hidden');
-    generateBtnText.innerText = 'Generating Voice... Please wait';
-    audioResultCard.classList.add('hidden');
-
-    try {
-        const res = await fetch('/api/tts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, gender, persona })
-        });
-
-        if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || `Server responded with status ${res.status}`);
+        if (!text) {
+            alert('Please enter or paste some Burmese text first!');
+            textInput.focus();
+            return;
         }
 
-        currentAudioBlob = await res.blob();
-        const audioUrl = URL.createObjectURL(currentAudioBlob);
+        generateBtn.disabled = true;
+        generateSpinner.classList.remove('hidden');
+        generateBtnText.innerText = 'Generating Voice... Please wait';
+        audioResultCard.classList.add('hidden');
 
-        audioPlayer.src = audioUrl;
-        audioPlayer.playbackRate = currentSpeed;
-        audioResultCard.classList.remove('hidden');
+        try {
+            const res = await fetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, gender, persona })
+            });
 
-        // Safe playback without failing on mobile autoplay policies
-        audioPlayer.play().catch(() => {
-            console.log("Autoplay was prevented by browser policy; user can click play manually.");
-        });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `Server returned status ${res.status}`);
+            }
 
-        // Save to IndexedDB history
-        const personaLabel = persona.charAt(0).toUpperCase() + persona.slice(1);
-        const historyItem = {
-            id: Date.now(),
-            text: text.slice(0, 75) + (text.length > 75 ? '...' : ''),
-            fullText: text,
-            gender: gender,
-            persona: personaLabel,
-            date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            audioBlob: currentAudioBlob
-        };
-        await saveToHistory(historyItem);
-        renderHistory();
+            currentAudioBlob = await res.blob();
+            const audioUrl = URL.createObjectURL(currentAudioBlob);
 
-    } catch (err) {
-        alert('Generation Error: ' + err.message);
-    } finally {
-        generateBtn.disabled = false;
-        generateSpinner.classList.add('hidden');
-        generateBtnText.innerText = 'Generate AI Voice';
-    }
-});
+            audioPlayer.src = audioUrl;
+            audioPlayer.playbackRate = currentSpeed;
+            audioResultCard.classList.remove('hidden');
 
-// AudioBuffer to WAV Converter
+            // Safe play without mobile autoplay failure
+            audioPlayer.play().catch(() => {
+                console.log("Autoplay was blocked by browser; user can tap play manually.");
+            });
+
+            // Save history
+            const personaLabel = persona.charAt(0).toUpperCase() + persona.slice(1);
+            const historyItem = {
+                id: Date.now(),
+                text: text.slice(0, 75) + (text.length > 75 ? '...' : ''),
+                fullText: text,
+                gender: gender,
+                persona: personaLabel,
+                date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                audioBlob: currentAudioBlob
+            };
+            await saveToHistory(historyItem);
+            renderHistory();
+
+        } catch (err) {
+            alert('Generation Error: ' + err.message);
+        } finally {
+            generateBtn.disabled = false;
+            generateSpinner.classList.add('hidden');
+            generateBtnText.innerText = 'Generate AI Voice';
+        }
+    });
+}
+
+// Download MP3
+if (downloadMp3Btn) {
+    downloadMp3Btn.addEventListener('click', () => {
+        if (!currentAudioBlob) return;
+        triggerDownload(currentAudioBlob, `myanmar-ai-${Date.now()}.mp3`);
+    });
+}
+
+// Download WAV
+if (downloadWavBtn) {
+    downloadWavBtn.addEventListener('click', async () => {
+        if (!currentAudioBlob) return;
+        try {
+            downloadWavBtn.innerText = 'Converting...';
+            const arrayBuf = await currentAudioBlob.arrayBuffer();
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const buffer = await audioCtx.decodeAudioData(arrayBuf);
+            const wav = audioBufferToWavBlob(buffer);
+            triggerDownload(wav, `myanmar-ai-${Date.now()}.wav`);
+        } catch (e) {
+            alert('WAV conversion error: ' + e.message);
+        } finally {
+            downloadWavBtn.innerText = '⬇️ Download WAV';
+        }
+    });
+}
+
 function audioBufferToWavBlob(buffer) {
     const numOfChan = 1;
     const length = buffer.length * 2 + 44;
@@ -247,41 +270,21 @@ function triggerDownload(blob, filename) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-downloadMp3Btn.addEventListener('click', () => {
-    if (currentAudioBlob) {
-        triggerDownload(currentAudioBlob, `myanmar-ai-${Date.now()}.mp3`);
-    }
-});
-
-// Lazy WAV generation only when downloaded
-downloadWavBtn.addEventListener('click', async () => {
-    if (!currentAudioBlob) return;
-    try {
-        downloadWavBtn.innerText = 'Converting...';
-        const arrayBuf = await currentAudioBlob.arrayBuffer();
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const buffer = await audioCtx.decodeAudioData(arrayBuf);
-        const wav = audioBufferToWavBlob(buffer);
-        triggerDownload(wav, `myanmar-ai-${Date.now()}.wav`);
-    } catch (e) {
-        alert('WAV conversion error: ' + e.message);
-    } finally {
-        downloadWavBtn.innerText = '⬇️ Download WAV';
-    }
-});
-
-// History Render
+// Render History
 async function renderHistory() {
+    if (!historyList) return;
     const list = await getAllHistory();
     historyList.innerHTML = '';
 
     if (!list || list.length === 0) {
-        emptyHistoryText.classList.remove('hidden');
-        historyList.appendChild(emptyHistoryText);
+        if (emptyHistoryText) {
+            emptyHistoryText.classList.remove('hidden');
+            historyList.appendChild(emptyHistoryText);
+        }
         return;
     }
 
-    emptyHistoryText.classList.add('hidden');
+    if (emptyHistoryText) emptyHistoryText.classList.add('hidden');
 
     list.forEach(item => {
         const card = document.createElement('div');
@@ -295,8 +298,8 @@ async function renderHistory() {
                 <p class="text-slate-700 font-medium text-xs line-clamp-1">${item.text}</p>
             </div>
             <div class="flex items-center gap-1.5">
-                <button onclick="playHistoryItem(${item.id})" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition">Play ▶️</button>
-                <button onclick="removeItem(${item.id})" class="p-1.5 bg-white border border-slate-200 rounded-lg hover:bg-red-50 text-red-500">🗑️</button>
+                <button type="button" onclick="playHistoryItem(${item.id})" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition cursor-pointer">Play ▶️</button>
+                <button type="button" onclick="removeItem(${item.id})" class="p-1.5 bg-white border border-slate-200 rounded-lg hover:bg-red-50 text-red-500 cursor-pointer">🗑️</button>
             </div>
         `;
         historyList.appendChild(card);
@@ -322,12 +325,14 @@ window.removeItem = async (id) => {
     renderHistory();
 };
 
-clearAllHistoryBtn.addEventListener('click', async () => {
-    if (confirm('Are you sure you want to delete all generation history?')) {
-        await clearAllHistory();
-        renderHistory();
-    }
-});
+if (clearAllHistoryBtn) {
+    clearAllHistoryBtn.addEventListener('click', async () => {
+        if (confirm('Are you sure you want to delete all generation history?')) {
+            await clearAllHistory();
+            renderHistory();
+        }
+    });
+}
 
 window.addEventListener('DOMContentLoaded', () => {
     renderHistory();

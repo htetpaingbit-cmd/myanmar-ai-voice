@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3.0">
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
 
@@ -22,24 +22,26 @@
                     <p class="text-[11px] text-blue-100 hidden sm:block">Natural Neural Text-to-Speech Engine</p>
                 </div>
             </div>
-            <span class="text-xs bg-blue-700/80 border border-blue-400/60 px-3 py-1 rounded-full font-medium">Neural AI v2.5</span>
+            <span class="text-xs bg-blue-700/80 border border-blue-400/60 px-3 py-1 rounded-full font-medium">Neural AI v3.0</span>
         </div>
     </header>
 
     <!-- Main Content Container -->
     <main class="max-w-5xl w-full mx-auto p-4 md:p-6 space-y-6">
 
-        <!-- Gender Selection -->
+        <!-- Gender Selection (CSS has-[:checked] for 100% Mobile Compatibility) -->
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-5 space-y-3">
             <label class="block text-xs font-bold text-blue-950 uppercase tracking-wider">1. Voice Gender</label>
             <div class="grid grid-cols-2 gap-3">
-                <label class="gender-card flex items-center justify-center gap-2 p-3 border-2 border-blue-600 bg-blue-50/70 rounded-xl cursor-pointer transition">
-                    <input type="radio" name="genderRadio" value="female" checked class="text-blue-600">
-                    <span class="font-bold text-sm text-blue-900">👩 Female (Nilar)</span>
+                <label class="flex items-center justify-center gap-2.5 p-3.5 border-2 rounded-xl cursor-pointer transition select-none
+                              border-slate-200 bg-slate-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/80 has-[:checked]:text-blue-900">
+                    <input type="radio" name="genderRadio" value="female" checked class="w-4 h-4 text-blue-600 accent-blue-600">
+                    <span class="font-bold text-sm">👩 Female (Nilar)</span>
                 </label>
-                <label class="gender-card flex items-center justify-center gap-2 p-3 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer transition">
-                    <input type="radio" name="genderRadio" value="male" class="text-blue-600">
-                    <span class="font-bold text-sm text-slate-700">👨 Male (Thiha)</span>
+                <label class="flex items-center justify-center gap-2.5 p-3.5 border-2 rounded-xl cursor-pointer transition select-none
+                              border-slate-200 bg-slate-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/80 has-[:checked]:text-blue-900">
+                    <input type="radio" name="genderRadio" value="male" class="w-4 h-4 text-blue-600 accent-blue-600">
+                    <span class="font-bold text-sm">👨 Male (Thiha)</span>
                 </label>
             </div>
         </section>
@@ -53,7 +55,7 @@
             
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
                 <!-- Presenter (Default) -->
-                <label class="persona-card p-3 border-2 border-blue-600 bg-blue-50/60 rounded-xl cursor-pointer transition block">
+                <label class="p-3 border-2 rounded-xl cursor-pointer transition block select-none border-slate-200 bg-slate-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/80">
                     <input type="radio" name="personaRadio" value="presenter" checked class="hidden">
                     <div class="flex items-center gap-2 font-bold text-xs text-blue-950">
                         <span>🎙️ Presenter / Guide</span>
@@ -62,7 +64,7 @@
                 </label>
 
                 <!-- Influencer -->
-                <label class="persona-card p-3 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer hover:bg-blue-50 transition block">
+                <label class="p-3 border-2 rounded-xl cursor-pointer transition block select-none border-slate-200 bg-slate-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/80">
                     <input type="radio" name="personaRadio" value="influencer" class="hidden">
                     <div class="flex items-center gap-2 font-bold text-xs text-slate-800">
                         <span>✨ Influencer / Creator</span>
@@ -71,7 +73,7 @@
                 </label>
 
                 <!-- Daily Vlogger -->
-                <label class="persona-card p-3 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer hover:bg-blue-50 transition block">
+                <label class="p-3 border-2 rounded-xl cursor-pointer transition block select-none border-slate-200 bg-slate-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/80">
                     <input type="radio" name="personaRadio" value="vlogger" class="hidden">
                     <div class="flex items-center gap-2 font-bold text-xs text-slate-800">
                         <span>☕ Daily Vlogger</span>
@@ -80,7 +82,7 @@
                 </label>
 
                 <!-- Sport Commentator -->
-                <label class="persona-card p-3 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer hover:bg-blue-50 transition block">
+                <label class="p-3 border-2 rounded-xl cursor-pointer transition block select-none border-slate-200 bg-slate-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/80">
                     <input type="radio" name="personaRadio" value="sport" class="hidden">
                     <div class="flex items-center gap-2 font-bold text-xs text-slate-800">
                         <span>⚽ Sport Commentator</span>
@@ -89,7 +91,7 @@
                 </label>
 
                 <!-- Trainer / Motivator -->
-                <label class="persona-card p-3 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer hover:bg-blue-50 transition block">
+                <label class="p-3 border-2 rounded-xl cursor-pointer transition block select-none border-slate-200 bg-slate-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/80">
                     <input type="radio" name="personaRadio" value="trainer" class="hidden">
                     <div class="flex items-center gap-2 font-bold text-xs text-slate-800">
                         <span>🔥 Motivator / Trainer</span>
@@ -98,7 +100,7 @@
                 </label>
 
                 <!-- Poem Reciter -->
-                <label class="persona-card p-3 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer hover:bg-blue-50 transition block">
+                <label class="p-3 border-2 rounded-xl cursor-pointer transition block select-none border-slate-200 bg-slate-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/80">
                     <input type="radio" name="personaRadio" value="poem" class="hidden">
                     <div class="flex items-center gap-2 font-bold text-xs text-slate-800">
                         <span>📖 Poem Reciter</span>
@@ -107,7 +109,7 @@
                 </label>
 
                 <!-- Horror Storyteller -->
-                <label class="persona-card p-3 border border-slate-200 bg-slate-50 rounded-xl cursor-pointer hover:bg-blue-50 transition block sm:col-span-2 md:col-span-1">
+                <label class="p-3 border-2 rounded-xl cursor-pointer transition block select-none border-slate-200 bg-slate-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/80 sm:col-span-2 md:col-span-1">
                     <input type="radio" name="personaRadio" value="horror" class="hidden">
                     <div class="flex items-center gap-2 font-bold text-xs text-slate-800">
                         <span>👻 Horror Storyteller</span>
@@ -122,9 +124,9 @@
             <div class="flex justify-between items-center">
                 <div>
                     <label class="block text-xs font-bold text-blue-950 uppercase tracking-wider">3. Burmese Script Input</label>
-                    <p class="text-[11px] text-slate-400">Put text in (brackets) for persona-specific expressions.</p>
+                    <p class="text-[11px] text-slate-400">Put text in (brackets) for persona expressions.</p>
                 </div>
-                <button id="clearBtn" class="text-xs text-slate-400 hover:text-red-500 transition font-medium">Clear Text</button>
+                <button id="clearBtn" type="button" class="text-xs text-slate-400 hover:text-red-500 transition font-medium">Clear Text</button>
             </div>
             
             <textarea id="textInput" rows="7" placeholder="မြန်မာစာသားများကို ဤနေရာတွင် ရိုက်ထည့်ပါ... စကားပြောသံ အတင်အချပြုလုပ်လိုပါက (ကွင်းစကွင်းပိတ်) သုံးနိုင်ပါသည်။" 
@@ -135,7 +137,7 @@
                 <span>Auto-normalized numbers & tech loanwords</span>
             </div>
 
-            <button id="generateBtn" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white py-3.5 rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-2">
+            <button id="generateBtn" type="button" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white py-3.5 rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-2 cursor-pointer">
                 <span id="generateSpinner" class="hidden animate-spin">🔄</span>
                 <span>🔊</span> <span id="generateBtnText">Generate AI Voice</span>
             </button>
@@ -157,17 +159,17 @@
             <div class="flex flex-wrap items-center justify-center gap-3 pt-2 border-t border-blue-100">
                 <div class="flex items-center gap-1.5">
                     <span class="text-xs text-slate-600 font-semibold">Speed:</span>
-                    <button class="speed-btn px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-blue-50" data-speed="0.75">0.75x</button>
-                    <button class="speed-btn px-2.5 py-1 text-xs bg-blue-600 text-white font-bold rounded" data-speed="1.0">1.0x</button>
-                    <button class="speed-btn px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-blue-50" data-speed="1.25">1.25x</button>
-                    <button class="speed-btn px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-blue-50" data-speed="1.5">1.5x</button>
+                    <button type="button" class="speed-btn px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-blue-50" data-speed="0.75">0.75x</button>
+                    <button type="button" class="speed-btn px-2.5 py-1 text-xs bg-blue-600 text-white font-bold rounded" data-speed="1.0">1.0x</button>
+                    <button type="button" class="speed-btn px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-blue-50" data-speed="1.25">1.25x</button>
+                    <button type="button" class="speed-btn px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-blue-50" data-speed="1.5">1.5x</button>
                 </div>
 
                 <div class="flex items-center gap-2 ml-2">
-                    <button id="downloadMp3Btn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition">
+                    <button id="downloadMp3Btn" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition">
                         ⬇️ Download MP3
                     </button>
-                    <button id="downloadWavBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition">
+                    <button id="downloadWavBtn" type="button" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition">
                         ⬇️ Download WAV
                     </button>
                 </div>
@@ -180,7 +182,7 @@
                 <h2 class="text-sm font-bold text-blue-900 flex items-center gap-1.5">
                     <span>🕒</span> Generation History
                 </h2>
-                <button id="clearAllHistoryBtn" class="text-xs text-red-400 hover:text-red-600 transition">Clear All</button>
+                <button id="clearAllHistoryBtn" type="button" class="text-xs text-red-400 hover:text-red-600 transition">Clear All</button>
             </div>
 
             <div id="historyList" class="space-y-3 max-h-80 overflow-y-auto pr-1 font-myanmar">
@@ -194,6 +196,7 @@
         Myanmar AI Voice Studio • Powered by Microsoft Edge Neural Speech
     </footer>
 
-    <script src="app.js"></script>
+    <!-- Cache Busted Script (Forces browser to reload new code) -->
+    <script src="app.js?v=3.1"></script>
 </body>
 </html>
