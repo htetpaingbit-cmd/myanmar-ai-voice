@@ -8,76 +8,76 @@ import os
 
 PORT = int(os.environ.get("PORT", 3000))
 
-# 7 Distinct Voice Personas with Pitch (%), Rate (%), and Volume (%) Dynamics
+# 7 Voice Personas: Pitch (must be Hz), Rate (%), Volume (%)
 PERSONA_CONFIGS = {
     "influencer": {
         "female": {
-            "normal":  {"rate": "+10%", "pitch": "+14%", "volume": "+15%"},
-            "bracket": {"rate": "+18%", "pitch": "+22%", "volume": "+25%"}
+            "normal":  {"rate": "+10%", "pitch": "+20Hz", "volume": "+15%"},
+            "bracket": {"rate": "+18%", "pitch": "+35Hz", "volume": "+25%"}
         },
         "male": {
-            "normal":  {"rate": "+8%",  "pitch": "+10%", "volume": "+15%"},
-            "bracket": {"rate": "+16%", "pitch": "+18%", "volume": "+25%"}
+            "normal":  {"rate": "+8%",  "pitch": "+15Hz", "volume": "+15%"},
+            "bracket": {"rate": "+16%", "pitch": "+28Hz", "volume": "+25%"}
         }
     },
     "presenter": {
         "female": {
-            "normal":  {"rate": "-1%", "pitch": "+0%", "volume": "+0%"},
-            "bracket": {"rate": "+6%", "pitch": "+8%", "volume": "+10%"}
+            "normal":  {"rate": "-1%", "pitch": "+0Hz", "volume": "+0%"},
+            "bracket": {"rate": "+6%", "pitch": "+12Hz", "volume": "+10%"}
         },
         "male": {
-            "normal":  {"rate": "-1%", "pitch": "-2%", "volume": "+0%"},
-            "bracket": {"rate": "+5%", "pitch": "+6%", "volume": "+10%"}
+            "normal":  {"rate": "-1%", "pitch": "-4Hz", "volume": "+0%"},
+            "bracket": {"rate": "+5%", "pitch": "+8Hz", "volume": "+10%"}
         }
     },
     "vlogger": {
         "female": {
-            "normal":  {"rate": "+4%", "pitch": "+5%", "volume": "+8%"},
-            "bracket": {"rate": "+12%", "pitch": "+14%", "volume": "+18%"}
+            "normal":  {"rate": "+4%", "pitch": "+8Hz",  "volume": "+8%"},
+            "bracket": {"rate": "+12%", "pitch": "+20Hz", "volume": "+18%"}
         },
         "male": {
-            "normal":  {"rate": "+3%", "pitch": "+3%", "volume": "+8%"},
-            "bracket": {"rate": "+10%", "pitch": "+12%", "volume": "+18%"}
+            "normal":  {"rate": "+3%", "pitch": "+5Hz",  "volume": "+8%"},
+            "bracket": {"rate": "+10%", "pitch": "+16Hz", "volume": "+18%"}
         }
     },
     "sport": {
         "female": {
-            "normal":  {"rate": "+22%", "pitch": "+16%", "volume": "+30%"},
-            "bracket": {"rate": "+32%", "pitch": "+26%", "volume": "+40%"}
+            "normal":  {"rate": "+22%", "pitch": "+25Hz", "volume": "+30%"},
+            "bracket": {"rate": "+32%", "pitch": "+45Hz", "volume": "+40%"}
         },
         "male": {
-            "normal":  {"rate": "+20%", "pitch": "+14%", "volume": "+30%"},
-            "bracket": {"rate": "+30%", "pitch": "+24%", "volume": "+40%"}
+            "normal":  {"rate": "+20%", "pitch": "+20Hz", "volume": "+30%"},
+            "bracket": {"rate": "+30%", "pitch": "+40Hz", "volume": "+40%"}
         }
     },
     "trainer": {
         "female": {
-            "normal":  {"rate": "+3%", "pitch": "-4%", "volume": "+20%"},
-            "bracket": {"rate": "+8%", "pitch": "+6%", "volume": "+28%"}
+            "normal":  {"rate": "+3%", "pitch": "-6Hz",  "volume": "+20%"},
+            "bracket": {"rate": "+8%", "pitch": "+10Hz", "volume": "+28%"}
         },
         "male": {
-            "normal":  {"rate": "+3%", "pitch": "-6%", "volume": "+20%"},
-            "bracket": {"rate": "+8%", "pitch": "+4%", "volume": "+28%"}
+            "normal":  {"rate": "+3%", "pitch": "-10Hz", "volume": "+20%"},
+            "bracket": {"rate": "+8%", "pitch": "+8Hz",  "volume": "+28%"}
         }
     },
     "poem": {
         "female": {
-            "normal":  {"rate": "-14%", "pitch": "-8%",  "volume": "-10%"},
-            "bracket": {"rate": "-20%", "pitch": "-15%", "volume": "-18%"}
+            "normal":  {"rate": "-14%", "pitch": "-12Hz", "volume": "-10%"},
+            "bracket": {"rate": "-20%", "pitch": "-22Hz", "volume": "-18%"}
         },
         "male": {
-            "normal":  {"rate": "-16%", "pitch": "-12%", "volume": "-10%"},
-            "bracket": {"rate": "-22%", "pitch": "-18%", "volume": "-18%"}
+            "normal":  {"rate": "-16%", "pitch": "-16Hz", "volume": "-10%"},
+            "bracket": {"rate": "-22%", "pitch": "-26Hz", "volume": "-18%"}
         }
     },
     "horror": {
         "female": {
-            "normal":  {"rate": "-18%", "pitch": "-22%", "volume": "-30%"},
-            "bracket": {"rate": "-26%", "pitch": "-30%", "volume": "-45%"}
+            "normal":  {"rate": "-18%", "pitch": "-28Hz", "volume": "-30%"},
+            "bracket": {"rate": "-26%", "pitch": "-40Hz", "volume": "-45%"}
         },
         "male": {
-            "normal":  {"rate": "-20%", "pitch": "-25%", "volume": "-30%"},
-            "bracket": {"rate": "-28%", "pitch": "-32%", "volume": "-45%"}
+            "normal":  {"rate": "-20%", "pitch": "-32Hz", "volume": "-30%"},
+            "bracket": {"rate": "-28%", "pitch": "-45Hz", "volume": "-45%"}
         }
     }
 }
@@ -113,20 +113,16 @@ def format_clean_text(text, persona):
         return "".join([BURMESE_NUMBERS.get(d, d) for d in digits]) + " "
     text = re.sub(r'\d+', convert_digits, text)
 
-    # Cadence Shaping အလိုက် Pause ချိန်ညှိခြင်း
+    # Cadence / Pause shaping based on persona
     if persona == "horror":
-        # အသံဆွဲပြီး ဖြည်းညင်းစွာ ရပ်နားရန်
         text = re.sub(r'။\s*', '။ \n\n\n ', text)
         text = re.sub(r'၊\s*', '၊ \n ', text)
     elif persona == "sport":
-        # တိုတိုပြတ်ပြတ် အသက်ရှူမြန်စေရန်
         text = re.sub(r'။\s*', '။ \n ', text)
         text = re.sub(r'၊\s*', ' ', text)
     elif persona == "poem":
-        # ကာရန်အလိုက် အချိုးကျရပ်ရန်
         text = re.sub(r'။\s*', '။ \n\n ', text)
     else:
-        # ပုံမှန် စကားပြောဟန်
         text = re.sub(r'။\s*', '။ \n\n ', text)
 
     text = re.sub(r'[<>{}\[\]_\\/&"\']', ' ', text)
@@ -180,7 +176,6 @@ class StudioTTSHandler(http.server.SimpleHTTPRequestHandler):
 
                     config = active_persona["bracket"] if is_bracket else active_persona["normal"]
 
-                    # Pitch, Rate နှင့် Volume သုံးခုလုံးကို ပေါင်းစပ်ထုတ်လုပ်ခြင်း
                     communicate = edge_tts.Communicate(
                         text=clean_part,
                         voice=voice_name,
@@ -230,6 +225,6 @@ class StudioTTSHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
-print(f"--- Myanmar AI Studio Dynamic Prosody v2.5 Running on Port {PORT} ---")
+print(f"--- Myanmar AI Studio Running on Port {PORT} ---")
 with socketserver.TCPServer(("", PORT), StudioTTSHandler) as httpd:
     httpd.serve_forever()
