@@ -8,35 +8,77 @@ import os
 
 PORT = int(os.environ.get("PORT", 3000))
 
-# 7 Voice Personas Configuration (Base Pitch & Rate + Bracket Pitch & Rate)
+# 7 Distinct Voice Personas with Pitch (%), Rate (%), and Volume (%) Dynamics
 PERSONA_CONFIGS = {
     "influencer": {
-        "female": {"normal": {"rate": "+8%", "pitch": "+3Hz"}, "bracket": {"rate": "+16%", "pitch": "+8Hz"}},
-        "male":   {"normal": {"rate": "+6%", "pitch": "+2Hz"}, "bracket": {"rate": "+14%", "pitch": "+6Hz"}}
+        "female": {
+            "normal":  {"rate": "+10%", "pitch": "+14%", "volume": "+15%"},
+            "bracket": {"rate": "+18%", "pitch": "+22%", "volume": "+25%"}
+        },
+        "male": {
+            "normal":  {"rate": "+8%",  "pitch": "+10%", "volume": "+15%"},
+            "bracket": {"rate": "+16%", "pitch": "+18%", "volume": "+25%"}
+        }
     },
     "presenter": {
-        "female": {"normal": {"rate": "-1%", "pitch": "+0Hz"}, "bracket": {"rate": "+5%", "pitch": "+4Hz"}},
-        "male":   {"normal": {"rate": "-1%", "pitch": "-1Hz"}, "bracket": {"rate": "+4%", "pitch": "+3Hz"}}
+        "female": {
+            "normal":  {"rate": "-1%", "pitch": "+0%", "volume": "+0%"},
+            "bracket": {"rate": "+6%", "pitch": "+8%", "volume": "+10%"}
+        },
+        "male": {
+            "normal":  {"rate": "-1%", "pitch": "-2%", "volume": "+0%"},
+            "bracket": {"rate": "+5%", "pitch": "+6%", "volume": "+10%"}
+        }
     },
     "vlogger": {
-        "female": {"normal": {"rate": "+3%", "pitch": "+2Hz"}, "bracket": {"rate": "+10%", "pitch": "+6Hz"}},
-        "male":   {"normal": {"rate": "+2%", "pitch": "+0Hz"}, "bracket": {"rate": "+8%", "pitch": "+5Hz"}}
+        "female": {
+            "normal":  {"rate": "+4%", "pitch": "+5%", "volume": "+8%"},
+            "bracket": {"rate": "+12%", "pitch": "+14%", "volume": "+18%"}
+        },
+        "male": {
+            "normal":  {"rate": "+3%", "pitch": "+3%", "volume": "+8%"},
+            "bracket": {"rate": "+10%", "pitch": "+12%", "volume": "+18%"}
+        }
     },
     "sport": {
-        "female": {"normal": {"rate": "+18%", "pitch": "+6Hz"}, "bracket": {"rate": "+28%", "pitch": "+14Hz"}},
-        "male":   {"normal": {"rate": "+18%", "pitch": "+4Hz"}, "bracket": {"rate": "+26%", "pitch": "+12Hz"}}
+        "female": {
+            "normal":  {"rate": "+22%", "pitch": "+16%", "volume": "+30%"},
+            "bracket": {"rate": "+32%", "pitch": "+26%", "volume": "+40%"}
+        },
+        "male": {
+            "normal":  {"rate": "+20%", "pitch": "+14%", "volume": "+30%"},
+            "bracket": {"rate": "+30%", "pitch": "+24%", "volume": "+40%"}
+        }
     },
     "trainer": {
-        "female": {"normal": {"rate": "+3%", "pitch": "-1Hz"}, "bracket": {"rate": "+8%", "pitch": "+4Hz"}},
-        "male":   {"normal": {"rate": "+3%", "pitch": "-3Hz"}, "bracket": {"rate": "+8%", "pitch": "+2Hz"}}
+        "female": {
+            "normal":  {"rate": "+3%", "pitch": "-4%", "volume": "+20%"},
+            "bracket": {"rate": "+8%", "pitch": "+6%", "volume": "+28%"}
+        },
+        "male": {
+            "normal":  {"rate": "+3%", "pitch": "-6%", "volume": "+20%"},
+            "bracket": {"rate": "+8%", "pitch": "+4%", "volume": "+28%"}
+        }
     },
     "poem": {
-        "female": {"normal": {"rate": "-12%", "pitch": "-2Hz"}, "bracket": {"rate": "-18%", "pitch": "-4Hz"}},
-        "male":   {"normal": {"rate": "-14%", "pitch": "-4Hz"}, "bracket": {"rate": "-20%", "pitch": "-6Hz"}}
+        "female": {
+            "normal":  {"rate": "-14%", "pitch": "-8%",  "volume": "-10%"},
+            "bracket": {"rate": "-20%", "pitch": "-15%", "volume": "-18%"}
+        },
+        "male": {
+            "normal":  {"rate": "-16%", "pitch": "-12%", "volume": "-10%"},
+            "bracket": {"rate": "-22%", "pitch": "-18%", "volume": "-18%"}
+        }
     },
     "horror": {
-        "female": {"normal": {"rate": "-15%", "pitch": "-6Hz"}, "bracket": {"rate": "-22%", "pitch": "-10Hz"}},
-        "male":   {"normal": {"rate": "-18%", "pitch": "-8Hz"}, "bracket": {"rate": "-25%", "pitch": "-12Hz"}}
+        "female": {
+            "normal":  {"rate": "-18%", "pitch": "-22%", "volume": "-30%"},
+            "bracket": {"rate": "-26%", "pitch": "-30%", "volume": "-45%"}
+        },
+        "male": {
+            "normal":  {"rate": "-20%", "pitch": "-25%", "volume": "-30%"},
+            "bracket": {"rate": "-28%", "pitch": "-32%", "volume": "-45%"}
+        }
     }
 }
 
@@ -59,24 +101,34 @@ TECH_WORDS = [
     (r'\bpage\b', 'ပေ့ခ်ျ')
 ]
 
-def format_clean_text(text):
+def format_clean_text(text, persona):
     if not text:
         return ""
-    
-    # 1. Phonetics / Loanwords mapping
+
     for pattern, replacement in TECH_WORDS:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
-    
-    # 2. Pronounce digits individually without unnatural pauses
+
     def convert_digits(match):
         digits = match.group(0)
         return "".join([BURMESE_NUMBERS.get(d, d) for d in digits]) + " "
     text = re.sub(r'\d+', convert_digits, text)
 
-    # 3. Handle Natural sentence endings
-    text = re.sub(r'။\s*', '။ \n\n ', text)
-    
-    # 4. Remove dangerous symbols that cause edge-tts crashes or speech leak
+    # Cadence Shaping အလိုက် Pause ချိန်ညှိခြင်း
+    if persona == "horror":
+        # အသံဆွဲပြီး ဖြည်းညင်းစွာ ရပ်နားရန်
+        text = re.sub(r'။\s*', '။ \n\n\n ', text)
+        text = re.sub(r'၊\s*', '၊ \n ', text)
+    elif persona == "sport":
+        # တိုတိုပြတ်ပြတ် အသက်ရှူမြန်စေရန်
+        text = re.sub(r'။\s*', '။ \n ', text)
+        text = re.sub(r'၊\s*', ' ', text)
+    elif persona == "poem":
+        # ကာရန်အလိုက် အချိုးကျရပ်ရန်
+        text = re.sub(r'။\s*', '။ \n\n ', text)
+    else:
+        # ပုံမှန် စကားပြောဟန်
+        text = re.sub(r'။\s*', '။ \n\n ', text)
+
     text = re.sub(r'[<>{}\[\]_\\/&"\']', ' ', text)
     return text.strip()
 
@@ -85,7 +137,7 @@ class StudioTTSHandler(http.server.SimpleHTTPRequestHandler):
         if self.path == '/api/tts':
             content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length)
-            
+
             try:
                 req_json = json.loads(post_data.decode('utf-8'))
             except Exception:
@@ -108,7 +160,6 @@ class StudioTTSHandler(http.server.SimpleHTTPRequestHandler):
             voice_name = "my-MM-NilarNeural" if gender == "female" else "my-MM-ThihaNeural"
             active_persona = PERSONA_CONFIGS[persona][gender]
 
-            # Split text by ( ... ) and （ ... ）
             bracket_pattern = r'([\(（][^()（）]+[\)）])'
             parts = re.split(bracket_pattern, raw_text)
 
@@ -121,23 +172,21 @@ class StudioTTSHandler(http.server.SimpleHTTPRequestHandler):
                     is_bracket = (part.startswith("(") and part.endswith(")")) or \
                                  (part.startswith("（") and part.endswith("）"))
 
-                    if is_bracket:
-                        clean_part = format_clean_text(part[1:-1])
-                        rate = active_persona["bracket"]["rate"]
-                        pitch = active_persona["bracket"]["pitch"]
-                    else:
-                        clean_part = format_clean_text(part)
-                        rate = active_persona["normal"]["rate"]
-                        pitch = active_persona["normal"]["pitch"]
+                    target_text = part[1:-1] if is_bracket else part
+                    clean_part = format_clean_text(target_text, persona)
 
                     if not clean_part:
                         continue
 
+                    config = active_persona["bracket"] if is_bracket else active_persona["normal"]
+
+                    # Pitch, Rate နှင့် Volume သုံးခုလုံးကို ပေါင်းစပ်ထုတ်လုပ်ခြင်း
                     communicate = edge_tts.Communicate(
                         text=clean_part,
                         voice=voice_name,
-                        rate=rate,
-                        pitch=pitch
+                        rate=config["rate"],
+                        pitch=config["pitch"],
+                        volume=config["volume"]
                     )
 
                     async for chunk in communicate.stream():
@@ -181,6 +230,6 @@ class StudioTTSHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
-print(f"--- Myanmar AI Voice Studio Running on Port {PORT} ---")
+print(f"--- Myanmar AI Studio Dynamic Prosody v2.5 Running on Port {PORT} ---")
 with socketserver.TCPServer(("", PORT), StudioTTSHandler) as httpd:
     httpd.serve_forever()
