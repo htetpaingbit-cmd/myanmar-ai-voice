@@ -8,7 +8,7 @@ import os
 
 PORT = int(os.environ.get("PORT", 3000))
 
-# 7 Voice Personas: Pitch (must be Hz), Rate (%), Volume (%)
+# 7 Voice Personas: Pitch (strictly Hz), Rate (%), Volume (%)
 PERSONA_CONFIGS = {
     "influencer": {
         "female": {
@@ -113,7 +113,7 @@ def format_clean_text(text, persona):
         return "".join([BURMESE_NUMBERS.get(d, d) for d in digits]) + " "
     text = re.sub(r'\d+', convert_digits, text)
 
-    # Cadence / Pause shaping based on persona
+    # Cadence rhythm mapping
     if persona == "horror":
         text = re.sub(r'။\s*', '။ \n\n\n ', text)
         text = re.sub(r'၊\s*', '၊ \n ', text)
@@ -225,6 +225,10 @@ class StudioTTSHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
-print(f"--- Myanmar AI Studio Running on Port {PORT} ---")
-with socketserver.TCPServer(("", PORT), StudioTTSHandler) as httpd:
+# Multi-threaded server for concurrent user requests
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    daemon_threads = True
+
+print(f"--- Myanmar AI Voice Studio Running on Port {PORT} ---")
+with ThreadedHTTPServer(("", PORT), StudioTTSHandler) as httpd:
     httpd.serve_forever()

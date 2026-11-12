@@ -30,6 +30,7 @@ async function getAllHistory() {
         const tx = db.transaction(STORE_HISTORY, 'readonly');
         const req = tx.objectStore(STORE_HISTORY).getAll();
         req.onsuccess = () => resolve((req.result || []).sort((a, b) => b.id - a.id));
+        req.onerror = () => resolve([]);
     });
 }
 
@@ -69,7 +70,6 @@ const emptyHistoryText = document.getElementById('emptyHistoryText');
 const clearAllHistoryBtn = document.getElementById('clearAllHistoryBtn');
 
 let currentAudioBlob = null;
-let currentAudioBuffer = null;
 let currentSpeed = 1.0;
 
 function formatSeconds(sec) {
@@ -96,7 +96,7 @@ clearBtn.addEventListener('click', () => {
     charCount.innerText = '0 characters';
 });
 
-// Gender Selection Radio styling
+// Gender Selection Card styling
 genderCards.forEach(card => {
     card.addEventListener('click', () => {
         genderCards.forEach(c => {
@@ -138,7 +138,7 @@ speedButtons.forEach(btn => {
     });
 });
 
-// TTS Generation Action
+// TTS Generation Action (Safe across mobile and all browsers)
 generateBtn.addEventListener('click', async () => {
     const text = textInput.value.trim();
     const gender = document.querySelector('input[name="genderRadio"]:checked').value;
@@ -170,17 +170,16 @@ generateBtn.addEventListener('click', async () => {
         currentAudioBlob = await res.blob();
         const audioUrl = URL.createObjectURL(currentAudioBlob);
 
-        // Web Audio API decode for instant WAV export
-        const arrayBuf = await currentAudioBlob.arrayBuffer();
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        currentAudioBuffer = await audioCtx.decodeAudioData(arrayBuf);
-
         audioPlayer.src = audioUrl;
         audioPlayer.playbackRate = currentSpeed;
         audioResultCard.classList.remove('hidden');
-        audioPlayer.play();
 
-        // Save into IndexedDB history
+        // Safe playback without failing on mobile autoplay policies
+        audioPlayer.play().catch(() => {
+            console.log("Autoplay was prevented by browser policy; user can click play manually.");
+        });
+
+        // Save to IndexedDB history
         const personaLabel = persona.charAt(0).toUpperCase() + persona.slice(1);
         const historyItem = {
             id: Date.now(),
@@ -203,7 +202,7 @@ generateBtn.addEventListener('click', async () => {
     }
 });
 
-// WAV Blob Converter
+// AudioBuffer to WAV Converter
 function audioBufferToWavBlob(buffer) {
     const numOfChan = 1;
     const length = buffer.length * 2 + 44;
@@ -245,7 +244,7 @@ function triggerDownload(blob, filename) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 downloadMp3Btn.addEventListener('click', () => {
@@ -254,14 +253,24 @@ downloadMp3Btn.addEventListener('click', () => {
     }
 });
 
-downloadWavBtn.addEventListener('click', () => {
-    if (currentAudioBuffer) {
-        const wav = audioBufferToWavBlob(currentAudioBuffer);
+// Lazy WAV generation only when downloaded
+downloadWavBtn.addEventListener('click', async () => {
+    if (!currentAudioBlob) return;
+    try {
+        downloadWavBtn.innerText = 'Converting...';
+        const arrayBuf = await currentAudioBlob.arrayBuffer();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const buffer = await audioCtx.decodeAudioData(arrayBuf);
+        const wav = audioBufferToWavBlob(buffer);
         triggerDownload(wav, `myanmar-ai-${Date.now()}.wav`);
+    } catch (e) {
+        alert('WAV conversion error: ' + e.message);
+    } finally {
+        downloadWavBtn.innerText = '⬇️ Download WAV';
     }
 });
 
-// Render IndexedDB History List
+// History Render
 async function renderHistory() {
     const list = await getAllHistory();
     historyList.innerHTML = '';
@@ -302,14 +311,10 @@ window.playHistoryItem = async (id) => {
     currentAudioBlob = item.audioBlob;
     const url = URL.createObjectURL(currentAudioBlob);
 
-    const arrayBuf = await currentAudioBlob.arrayBuffer();
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    currentAudioBuffer = await audioCtx.decodeAudioData(arrayBuf);
-
     audioPlayer.src = url;
     audioPlayer.playbackRate = currentSpeed;
     audioResultCard.classList.remove('hidden');
-    audioPlayer.play();
+    audioPlayer.play().catch(() => {});
 };
 
 window.removeItem = async (id) => {
